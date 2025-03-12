@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Item" ADD COLUMN     "baseline" INTEGER NOT NULL DEFAULT 10;
