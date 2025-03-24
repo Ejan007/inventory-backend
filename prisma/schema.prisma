@@ -35,7 +35,7 @@ model Store {
 }
 
 model Item {
-  id                Int      @id @default(autoincrement())
+  id                Int            @id @default(autoincrement())
   name              String
   quantity          Int
   mondayRequired    Int
@@ -45,11 +45,23 @@ model Item {
   fridayRequired    Int
   saturdayRequired  Int
   sundayRequired    Int
-  storeId           Int      @default(1)  // Set default to 1 for existing rows
-  store             Store    @relation(fields: [storeId], references: [id])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  storeId           Int            @default(1)
+  store             Store          @relation(fields: [storeId], references: [id])
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  history           ItemHistory[]  // 👈 this line tells Prisma the reverse relation
 }
 
+
+model ItemHistory {
+  id         Int      @id @default(autoincrement())
+  itemId     Int
+  quantity   Int
+  updatedBy  String
+  updatedAt  DateTime @default(now())
+
+item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
 
 
