@@ -12,26 +12,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
 app.use(express.json());
 
-// Updated CORS configuration to allow both production and local development origins
-const whitelist = [
-  'https://inventory-client-eight.vercel.app',
-  'http://localhost:3000'
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (e.g., mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (whitelist.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+// Updated CORS configuration to allow all origins
+app.use(cors({
+  origin: '*',
   optionsSuccessStatus: 200,
-};
-
-app.use(cors(corsOptions));
+}));
 
 // Login Endpoint
 app.post('/login', async (req, res) => {
@@ -50,7 +35,6 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Sign JWT with user id and role
     const token = jwt.sign(
       { userId: user.id, role: user.role },
       JWT_SECRET,
@@ -134,44 +118,3 @@ app.put('/items/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating item and logging history:', error);
     res.status(500).json({ error: 'Failed to update item and log history' });
-  }
-});
-
-// Get full history
-app.get('/history-full', async (req, res) => {
-  try {
-    const history = await prisma.itemHistory.findMany({
-      include: { item: true },
-      orderBy: { updatedAt: 'desc' },
-    });
-    res.json(history);
-  } catch (error) {
-    console.error('Error fetching full history:', error);
-    res.status(500).json({ error: 'Failed to fetch full history' });
-  }
-});
-
-// Delete an inventory item
-app.delete('/items/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const item = await prisma.item.delete({
-      where: { id: Number(id) },
-    });
-    res.json(item);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete item' });
-  }
-});
-
-app.listen(PORT, () => {
-  figlet('StockIT', (err, data) => {
-    if (err) {
-      console.log('Something went wrong with figlet...');
-      console.dir(err);
-      return;
-    }
-    console.log(data);
-    console.log(`Server is running on port ${PORT}`);
-  });
-});
