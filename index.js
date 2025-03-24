@@ -10,8 +10,15 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
-app.use(cors());
 app.use(express.json());
+
+// Updated CORS configuration
+const corsOptions = {
+  origin: 'https://inventory-client-eight.vercel.app', // Your client's URL
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+};
+
+app.use(cors(corsOptions));
 
 // Login Endpoint
 app.post('/login', async (req, res) => {
@@ -192,4 +199,3 @@ app.listen(PORT, () => {
     })
     
   });
-  
