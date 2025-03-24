@@ -185,5 +185,11 @@ app.listen(PORT, () => {
       console.error('Error fetching history:', error);
       res.status(500).json({ error: 'Failed to fetch history data' });
     }
+
+
+    app.listen(port, () => {
+      console.log(`Example app listening on port ${port}`)
+    })
+    
   });
   
