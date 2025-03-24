@@ -118,3 +118,44 @@ app.put('/items/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating item and logging history:', error);
     res.status(500).json({ error: 'Failed to update item and log history' });
+  }
+});
+
+// Get full history
+app.get('/history-full', async (req, res) => {
+  try {
+    const history = await prisma.itemHistory.findMany({
+      include: { item: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+    res.json(history);
+  } catch (error) {
+    console.error('Error fetching full history:', error);
+    res.status(500).json({ error: 'Failed to fetch full history' });
+  }
+});
+
+// Delete an inventory item
+app.delete('/items/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const item = await prisma.item.delete({
+      where: { id: Number(id) },
+    });
+    res.json(item);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete item' });
+  }
+});
+
+app.listen(PORT, () => {
+  figlet('StockIT', (err, data) => {
+    if (err) {
+      console.log('Something went wrong with figlet...');
+      console.dir(err);
+      return;
+    }
+    console.log(data);
+    console.log(`Server is running on port ${PORT}`);
+  });
+});
