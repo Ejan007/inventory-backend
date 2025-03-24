@@ -12,10 +12,23 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
 app.use(express.json());
 
-// Updated CORS configuration
+// Updated CORS configuration to allow both production and local development origins
+const whitelist = [
+  'https://inventory-client-eight.vercel.app',
+  'http://localhost:3000'
+];
+
 const corsOptions = {
-  origin: 'https://inventory-client-eight.vercel.app', // Your client's URL
-  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+  origin: function (origin, callback) {
+    // Allow requests with no origin (e.g., mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
@@ -49,9 +62,9 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 // Create an inventory item
 app.post('/items', async (req, res) => {
-  // Extract storeId along with other fields from the request body
   const { name, quantity, mondayRequired, tuesdayRequired, wednesdayRequired, thursdayRequired, fridayRequired, saturdayRequired, sundayRequired, storeId } = req.body;
   try {
     const item = await prisma.item.create({
@@ -65,7 +78,7 @@ app.post('/items', async (req, res) => {
         fridayRequired,
         saturdayRequired,
         sundayRequired,
-        storeId  // Now including storeId in the data
+        storeId
       },
     });
     res.json(item);
@@ -74,7 +87,6 @@ app.post('/items', async (req, res) => {
     res.status(500).json({ error: 'Failed to add item' });
   }
 });
-
 
 // Get a single inventory item
 app.get('/items/:id', async (req, res) => {
@@ -99,19 +111,17 @@ app.get('/items', async (req, res) => {
   }
 });
 
-// Update an inventory item
+// Update an inventory item and log history
 app.put('/items/:id', async (req, res) => {
   const { id } = req.params;
   const { quantity, updatedBy } = req.body;
 
   try {
-    // Update the actual item
     const updatedItem = await prisma.item.update({
       where: { id: Number(id) },
       data: { quantity },
     });
 
-    // Log the history
     await prisma.itemHistory.create({
       data: {
         itemId: Number(id),
@@ -127,7 +137,7 @@ app.put('/items/:id', async (req, res) => {
   }
 });
 
-
+// Get full history
 app.get('/history-full', async (req, res) => {
   try {
     const history = await prisma.itemHistory.findMany({
@@ -140,9 +150,6 @@ app.get('/history-full', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch full history' });
   }
 });
-
-
-
 
 // Delete an inventory item
 app.delete('/items/:id', async (req, res) => {
@@ -158,44 +165,13 @@ app.delete('/items/:id', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    figlet('StockIT', (err, data) => {
-      if (err) {
-        console.log('Something went wrong with figlet...');
-        console.dir(err);
-        return;
-      }
-      console.log(data);
-      console.log(`Server is running on port ${PORT}`);
-    });
-  });
-
-  app.get('/history', async (req, res) => {
-    const prisma = new PrismaClient();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
-  
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-  
-    try {
-      const items = await prisma.item.findMany({
-        where: {
-          updatedAt: {
-            gte: yesterday,
-            lt: today,
-          },
-        },
-      });
-      res.json(items);
-    } catch (error) {
-      console.error('Error fetching history:', error);
-      res.status(500).json({ error: 'Failed to fetch history data' });
+  figlet('StockIT', (err, data) => {
+    if (err) {
+      console.log('Something went wrong with figlet...');
+      console.dir(err);
+      return;
     }
-
-
-    app.listen(port, () => {
-      console.log(`Example app listening on port ${port}`)
-    })
-    
+    console.log(data);
+    console.log(`Server is running on port ${PORT}`);
   });
+});
