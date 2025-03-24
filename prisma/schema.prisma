@@ -13,11 +13,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Item {
+enum Role {
+  ADMIN
+  STORE
+  HEADOFFICE
+}
+
+model User {
   id        Int      @id @default(autoincrement())
-  name      String
-  quantity  Int      // This field stores the current count reported by the store
-  baseline  Int      @default(10) // This field stores the expected stock level for each day
+  email     String   @unique
+  password  String   // We'll store a hashed password
+  role      Role
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Store {
+  id    Int    @id @default(autoincrement())
+  name  String
+  items Item[]
+}
+
+model Item {
+  id                Int      @id @default(autoincrement())
+  name              String
+  quantity          Int
+  mondayRequired    Int
+  tuesdayRequired   Int
+  wednesdayRequired Int
+  thursdayRequired  Int
+  fridayRequired    Int
+  saturdayRequired  Int
+  sundayRequired    Int
+  storeId           Int      @default(1)  // Set default to 1 for existing rows
+  store             Store    @relation(fields: [storeId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+
+

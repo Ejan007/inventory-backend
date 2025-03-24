@@ -11,15 +11,43 @@ app.use(cors());
 app.use(express.json());
 
 // Create an inventory item
+// Create an inventory item
 app.post('/items', async (req, res) => {
-  const { name, quantity } = req.body;
+  // Extract storeId along with other fields from the request body
+  const { name, quantity, mondayRequired, tuesdayRequired, wednesdayRequired, thursdayRequired, fridayRequired, saturdayRequired, sundayRequired, storeId } = req.body;
   try {
     const item = await prisma.item.create({
-      data: { name, quantity },
+      data: { 
+        name, 
+        quantity, 
+        mondayRequired, 
+        tuesdayRequired,
+        wednesdayRequired,
+        thursdayRequired,
+        fridayRequired,
+        saturdayRequired,
+        sundayRequired,
+        storeId  // Now including storeId in the data
+      },
     });
     res.json(item);
   } catch (error) {
+    console.error('Error creating item:', error);
     res.status(500).json({ error: 'Failed to add item' });
+  }
+});
+
+
+// Get a single inventory item
+app.get('/items/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const item = await prisma.item.findUnique({
+      where: { id: Number(id) },
+    });
+    res.json(item);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve item' });
   }
 });
 
