@@ -15,7 +15,8 @@ app.use(express.json());
 // Updated CORS configuration with allowed origins
 const allowedOrigins = [
   'https://inventory-client-o8x7911id-ejan007s-projects.vercel.app',
-  'https://inventory-client-gamma.vercel.app'
+  'https://inventory-client-gamma.vercel.app',
+  'http://localhost:3000',
 ];
 
 const corsOptions = {
@@ -63,6 +64,7 @@ app.post('/login', async (req, res) => {
 });
 
 // Create an inventory item
+// Create an inventory item
 app.post('/items', async (req, res) => {
   const { name, quantity, mondayRequired, tuesdayRequired, wednesdayRequired, thursdayRequired, fridayRequired, saturdayRequired, sundayRequired, storeId } = req.body;
   try {
@@ -83,9 +85,10 @@ app.post('/items', async (req, res) => {
     res.json(item);
   } catch (error) {
     console.error('Error creating item:', error);
-    res.status(500).json({ error: 'Failed to add item' });
+    res.status(500).json({ error: 'Failed to add item', details: error.message });
   }
 });
+
 
 // Get a single inventory item
 app.get('/items/:id', async (req, res) => {
