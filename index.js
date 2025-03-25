@@ -14,7 +14,7 @@ app.use(express.json());
 
 // Replace the CORS configuration with:
 const corsOptions = {
-  origin: 'https://inventory-client-3pi9sdg4n-ejan007s-projects.vercel.app/', // Your client's URL
+  origin: 'https://inventory-client-o8x7911id-ejan007s-projects.vercel.app', // Your client's URL
   optionsSuccessStatus: 200
 };
 
