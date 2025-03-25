@@ -63,6 +63,7 @@ app.post('/login', async (req, res) => {
 });
 
 // Create an inventory item
+// Create an inventory item
 app.post('/items', async (req, res) => {
   const { name, quantity, mondayRequired, tuesdayRequired, wednesdayRequired, thursdayRequired, fridayRequired, saturdayRequired, sundayRequired, storeId } = req.body;
   try {
@@ -83,9 +84,10 @@ app.post('/items', async (req, res) => {
     res.json(item);
   } catch (error) {
     console.error('Error creating item:', error);
-    res.status(500).json({ error: 'Failed to add item' });
+    res.status(500).json({ error: 'Failed to add item', details: error.message });
   }
 });
+
 
 // Get a single inventory item
 app.get('/items/:id', async (req, res) => {
