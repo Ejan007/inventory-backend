@@ -12,11 +12,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
 app.use(express.json());
 
-// Updated CORS configuration to allow all origins
-app.use(cors({
-  origin: '*',
-  optionsSuccessStatus: 200,
-}));
+// Replace the CORS configuration with:
+const corsOptions = {
+  origin: 'https://inventory-client-eight.vercel.app/', // Your client's URL
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 // Login Endpoint
 app.post('/login', async (req, res) => {
