@@ -12,10 +12,23 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
 app.use(express.json());
 
-// Replace the CORS configuration with:
+// Updated CORS configuration with allowed origins
+const allowedOrigins = [
+  'https://inventory-client-o8x7911id-ejan007s-projects.vercel.app',
+  'https://inventory-client-gamma.vercel.app'
+];
+
 const corsOptions = {
-  origin: 'https://inventory-client-o8x7911id-ejan007s-projects.vercel.app', // Your client's URL
-  optionsSuccessStatus: 200
+  origin: function (origin, callback) {
+    // Allow requests with no origin (e.g., curl, mobile apps)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
