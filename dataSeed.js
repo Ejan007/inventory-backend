@@ -336,8 +336,8 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch(e => {
+    console.error('Error seeding data:', e);
     process.exit(1);
   })
   .finally(async () => {

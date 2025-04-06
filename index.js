@@ -17,6 +17,7 @@ const allowedOrigins = [
   'https://inventory-client-o8x7911id-ejan007s-projects.vercel.app',
   'https://inventory-client-gamma.vercel.app',
   'http://localhost:3000',
+  'https://master.d2vsxhqb9wv804.amplifyapp.com',
 ];
 
 const corsOptions = {

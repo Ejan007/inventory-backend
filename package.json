@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-"start": "npx prisma generate && npx prisma migrate deploy && node index.js", "seed": "node seed.js"  },
+    "start": "npx prisma generate && npx prisma migrate deploy && node index.js",
+    "seed": "node seed.js",
+    "db:init": "npx prisma migrate deploy",
+    "setup": "node migrateAndSeed.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

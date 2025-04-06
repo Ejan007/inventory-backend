@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,16 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  STORE
-  HEADOFFICE
-}
-
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
-  password  String   // We'll store a hashed password
+  password  String
   role      Role
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -35,33 +23,34 @@ model Store {
 }
 
 model Item {
-  id                Int            @id @default(autoincrement())
+  id                Int           @id @default(autoincrement())
   name              String
   quantity          Int
-  mondayRequired    Int
-  tuesdayRequired   Int
-  wednesdayRequired Int
-  thursdayRequired  Int
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
   fridayRequired    Int
+  mondayRequired    Int
   saturdayRequired  Int
   sundayRequired    Int
-  storeId           Int            @default(1)
-  store             Store          @relation(fields: [storeId], references: [id])
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  history           ItemHistory[]  // 👈 this line tells Prisma the reverse relation
+  thursdayRequired  Int
+  tuesdayRequired   Int
+  wednesdayRequired Int
+  storeId           Int           @default(1)
+  store             Store         @relation(fields: [storeId], references: [id])
+  history           ItemHistory[]
 }
-
 
 model ItemHistory {
-  id         Int      @id @default(autoincrement())
-  itemId     Int
-  quantity   Int
-  updatedBy  String
-  updatedAt  DateTime @default(now())
-
-item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  id        Int      @id @default(autoincrement())
+  itemId    Int
+  quantity  Int
+  updatedBy String
+  updatedAt DateTime @default(now())
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 }
 
-
+enum Role {
+  ADMIN
+  STORE
+  HEADOFFICE
+}
