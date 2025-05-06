@@ -12,28 +12,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
 app.use(express.json());
 
-// Updated CORS configuration with allowed origins
-const allowedOrigins = [
-  'https://inventory-client-o8x7911id-ejan007s-projects.vercel.app',
-  'https://inventory-client-gamma.vercel.app',
-  'http://localhost:3000',
-  'https://master.d2vsxhqb9wv804.amplifyapp.com',
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (e.g., curl, mobile apps)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  optionsSuccessStatus: 200,
-};
-
-app.use(cors(corsOptions));
+// Updated CORS configuration to allow requests from all origins
+app.use(cors({
+  origin: '*',
+  optionsSuccessStatus: 200
+}));
 
 // Middleware to authenticate JWT token
 const authenticateToken = (req, res, next) => {
