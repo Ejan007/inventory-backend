@@ -64,7 +64,95 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Create an inventory item
+// Add another route for /auth/login that matches what the frontend expects
+app.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+    
+    // Enhanced response with more user information
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      success: true
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add registration endpoint
+app.post('/auth/register', async (req, res) => {
+  const { email, password, role = 'STORE' } = req.body;
+  
+  try {
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create the new user
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role: role.toUpperCase(),
+      },
+    });
+
+    // Generate JWT token for the new user
+    const token = jwt.sign(
+      { userId: newUser.id, role: newUser.role },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    // Return success with token and user information
+    res.status(201).json({ 
+      message: 'User registered successfully',
+      token,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        role: newUser.role
+      },
+      success: true
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Failed to register user' });
+  }
+});
+
 // Create an inventory item
 app.post('/items', async (req, res) => {
   const { name, quantity, mondayRequired, tuesdayRequired, wednesdayRequired, thursdayRequired, fridayRequired, saturdayRequired, sundayRequired, storeId } = req.body;
@@ -117,12 +205,31 @@ app.get('/items', async (req, res) => {
 // Update an inventory item and log history
 app.put('/items/:id', async (req, res) => {
   const { id } = req.params;
-  const { quantity, updatedBy } = req.body;
+  const { 
+    quantity, 
+    mondayRequired, 
+    tuesdayRequired, 
+    wednesdayRequired, 
+    thursdayRequired, 
+    fridayRequired, 
+    saturdayRequired, 
+    sundayRequired,
+    updatedBy 
+  } = req.body;
 
   try {
     const updatedItem = await prisma.item.update({
       where: { id: Number(id) },
-      data: { quantity },
+      data: { 
+        quantity,
+        mondayRequired,
+        tuesdayRequired,
+        wednesdayRequired,
+        thursdayRequired,
+        fridayRequired,
+        saturdayRequired,
+        sundayRequired
+      },
     });
 
     await prisma.itemHistory.create({
