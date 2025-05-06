@@ -8,18 +8,38 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  role      Role
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               Int           @id @default(autoincrement())
+  email            String        @unique
+  password         String
+  role             Role
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  organizationId   Int?
+  organization     Organization? @relation(fields: [organizationId], references: [id])
+  isNewOrganization Boolean      @default(false)
+}
+
+model Organization {
+  id          Int      @id @default(autoincrement())
+  name        String
+  industry    Industry @default(OTHER)
+  timezone    String   @default("Australia/Canberra")
+  address     String?
+  phone       String?
+  isActive    Boolean  @default(true)
+  adminEmail  String
+  createdAt   DateTime @default(now())
+  users       User[]
+  stores      Store[]
+  items       Item[]
 }
 
 model Store {
-  id    Int    @id @default(autoincrement())
-  name  String
-  items Item[]
+  id             Int           @id @default(autoincrement())
+  name           String
+  items          Item[]
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model Item {
@@ -38,6 +58,8 @@ model Item {
   storeId           Int           @default(1)
   store             Store         @relation(fields: [storeId], references: [id])
   history           ItemHistory[]
+  organizationId    Int?
+  organization      Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model ItemHistory {
@@ -53,4 +75,13 @@ enum Role {
   ADMIN
   STORE
   HEADOFFICE
+}
+
+enum Industry {
+  BAKERY
+  RESTAURANT
+  CAFE
+  RETAIL
+  MANUFACTURING
+  OTHER
 }
