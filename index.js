@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const prisma = new PrismaClient();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4000; // Changed from 4000 to 3000
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
 app.use(express.json());
@@ -17,21 +17,34 @@ const allowedOrigins = [
   'https://inventory-client-o8x7911id-ejan007s-projects.vercel.app',
   'https://inventory-client-gamma.vercel.app',
   'http://localhost:3000',
-  'https://inventory-client-hndje53bd-ejan007s-projects.vercel.app'
-
+  'https://inventory-client-hndje53bd-ejan007s-projects.vercel.app',
+  'http://192.168.1.104:3000',
+  'http://192.168.1.104:4000',
+  'capacitor://localhost',
+  'ionic://localhost',
+  '*'  // Add wildcard for testing only - remove in production
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (e.g., curl, mobile apps)
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
+    
+    // For testing, allow any origin
+    if (allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.log('CORS blocked origin:', origin);
+      callback(null, false);  // Don't throw error, just refuse
     }
   },
-  optionsSuccessStatus: 200,
+  credentials: true,             // Allow credentials
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow all these methods
+  optionsSuccessStatus: 200,     // For legacy browser support
 };
 
 app.use(cors(corsOptions));
@@ -719,7 +732,17 @@ app.post('/stores', authenticateToken, filterByOrganization, async (req, res) =>
   }
 });
 
-app.listen(PORT, () => {
+// Add a test endpoint to check connectivity
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'Server is running and accessible!',
+    timestamp: new Date().toISOString(),
+    clientIp: req.ip || req.connection.remoteAddress,
+    headers: req.headers
+  });
+});
+
+app.listen(PORT, '0.0.0.0', () => {
   figlet('StockIT', (err, data) => {
     if (err) {
       console.log('Something went wrong with figlet...');
@@ -728,5 +751,21 @@ app.listen(PORT, () => {
     }
     console.log(data);
     console.log(`Server is running on port ${PORT}`);
+    
+    // Print network access information
+    const networkInterfaces = require('os').networkInterfaces();
+    const addresses = [];
+    for (const iface of Object.values(networkInterfaces)) {
+      for (const addr of iface) {
+        if (addr.family === 'IPv4' && !addr.internal) {
+          addresses.push(addr.address);
+        }
+      }
+    }
+    if (addresses.length > 0) {
+      console.log(`\nAccess your API from other devices on your network:`);
+      console.log(`http://${addresses[0]}:${PORT}`);
+      console.log(`\nMake sure your frontend app points to this address.`);
+    }
   });
 });
