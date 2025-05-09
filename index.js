@@ -18,6 +18,8 @@ const allowedOrigins = [
   'https://inventory-client-gamma.vercel.app',
   'http://localhost:3000',
   'https://master.d2vsxhqb9wv804.amplifyapp.com',
+  'https://inventory-client-hndje53bd-ejan007s-projects.vercel.app'
+
 ];
 
 const corsOptions = {
@@ -230,6 +232,55 @@ app.post('/auth/register', async (req, res) => {
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Failed to register user' });
+  }
+});
+
+// Add missing endpoint for /api/auth/login to match frontend expectation
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { organization: true }
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        role: user.role,
+        organizationId: user.organizationId,
+        organizationName: user.organization?.name,
+        isNewOrganization: user.isNewOrganization
+      },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+    
+    // Enhanced response with more user information
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        organizationId: user.organizationId,
+        organizationName: user.organization?.name,
+        isNewOrganization: user.isNewOrganization
+      },
+      success: true
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
