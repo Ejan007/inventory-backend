@@ -17,7 +17,6 @@ const allowedOrigins = [
   'https://inventory-client-o8x7911id-ejan007s-projects.vercel.app',
   'https://inventory-client-gamma.vercel.app',
   'http://localhost:3000',
-  'https://master.d2vsxhqb9wv804.amplifyapp.com',
   'https://inventory-client-hndje53bd-ejan007s-projects.vercel.app'
 
 ];
@@ -91,8 +90,26 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Get organization name separately if needed
+    let organizationName = null;
+    if (user.organizationId) {
+      try {
+        const organization = await prisma.organization.findUnique({
+          where: { id: user.organizationId }
+        });
+        organizationName = organization?.name;
+      } catch (orgError) {
+        console.log('Warning: Could not fetch organization:', orgError);
+      }
+    }
+
     const token = jwt.sign(
-      { userId: user.id, role: user.role },
+      { 
+        userId: user.id, 
+        role: user.role,
+        organizationId: user.organizationId,
+        organizationName: organizationName
+      },
       JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -108,8 +125,7 @@ app.post('/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await prisma.user.findUnique({
-      where: { email },
-      include: { organization: true }
+      where: { email }
     });
 
     if (!user) {
@@ -121,12 +137,25 @@ app.post('/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Get organization name separately if needed
+    let organizationName = null;
+    if (user.organizationId) {
+      try {
+        const organization = await prisma.organization.findUnique({
+          where: { id: user.organizationId }
+        });
+        organizationName = organization?.name;
+      } catch (orgError) {
+        console.log('Warning: Could not fetch organization:', orgError);
+      }
+    }
+
     const token = jwt.sign(
       { 
         userId: user.id, 
         role: user.role,
         organizationId: user.organizationId,
-        organizationName: user.organization?.name,
+        organizationName: organizationName,
         isNewOrganization: user.isNewOrganization
       },
       JWT_SECRET,
@@ -141,7 +170,7 @@ app.post('/auth/login', async (req, res) => {
         email: user.email,
         role: user.role,
         organizationId: user.organizationId,
-        organizationName: user.organization?.name,
+        organizationName: organizationName,
         isNewOrganization: user.isNewOrganization
       },
       success: true
@@ -240,8 +269,7 @@ app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await prisma.user.findUnique({
-      where: { email },
-      include: { organization: true }
+      where: { email }
     });
 
     if (!user) {
@@ -253,12 +281,25 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Get organization name separately if needed
+    let organizationName = null;
+    if (user.organizationId) {
+      try {
+        const organization = await prisma.organization.findUnique({
+          where: { id: user.organizationId }
+        });
+        organizationName = organization?.name;
+      } catch (orgError) {
+        console.log('Warning: Could not fetch organization:', orgError);
+      }
+    }
+
     const token = jwt.sign(
       { 
         userId: user.id, 
         role: user.role,
         organizationId: user.organizationId,
-        organizationName: user.organization?.name,
+        organizationName: organizationName,
         isNewOrganization: user.isNewOrganization
       },
       JWT_SECRET,
@@ -273,7 +314,7 @@ app.post('/api/auth/login', async (req, res) => {
         email: user.email,
         role: user.role,
         organizationId: user.organizationId,
-        organizationName: user.organization?.name,
+        organizationName: organizationName,
         isNewOrganization: user.isNewOrganization
       },
       success: true
