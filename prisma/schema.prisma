@@ -20,23 +20,28 @@ model User {
 }
 
 model Organization {
-  id          Int      @id @default(autoincrement())
-  name        String
-  industry    Industry @default(OTHER)
-  timezone    String   @default("Australia/Canberra")
-  address     String?
-  phone       String?
-  isActive    Boolean  @default(true)
-  adminEmail  String
-  createdAt   DateTime @default(now())
-  users       User[]
-  stores      Store[]
-  items       Item[]
+  id                Int      @id @default(autoincrement())
+  name              String
+  industry          Industry @default(OTHER)
+  timezone          String   @default("Australia/Canberra")
+  address           String?
+  phone             String?
+  isActive          Boolean  @default(true)
+  adminEmail        String
+  createdAt         DateTime @default(now())
+  users             User[]
+  stores            Store[]
+  items             Item[]
+  defaultCategories String[] @default(["Meat", "Vegetables", "Fruits", "Dairy", "Bakery", "Dry Goods", "Frozen", "Beverages", "Other"])
+  contactEmail      String?
+  contactPhone      String?
+  logoUrl           String?
 }
 
 model Store {
   id             Int           @id @default(autoincrement())
   name           String
+  address        String?       
   items          Item[]
   organizationId Int?
   organization   Organization? @relation(fields: [organizationId], references: [id])
@@ -46,6 +51,7 @@ model Item {
   id                Int           @id @default(autoincrement())
   name              String
   quantity          Int
+  category          String        @default("Other")
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   fridayRequired    Int

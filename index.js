@@ -451,11 +451,10 @@ app.post('/api/organizations/setup', authenticateToken, async (req, res) => {
 
 // Also add the singular version of the endpoint to match frontend expectation
 app.post('/api/organization/setup', authenticateToken, async (req, res) => {
-  try {
-    console.log('Received organization setup request:', req.body);
+  try {    console.log('Received organization setup request:', req.body);
     console.log('User context:', req.user);
     
-    const { orgSettings, store, items } = req.body;
+    const { orgSettings = {}, store = {}, items = [], defaultCategories } = req.body;
     const { userId, organizationId } = req.user;
     
     if (!organizationId) {
@@ -465,31 +464,40 @@ app.post('/api/organization/setup', authenticateToken, async (req, res) => {
     console.log(`Setting up organization ID: ${organizationId}`);
     
     // Convert industry value to uppercase to match the enum values
-    const industryValue = orgSettings.industry ? orgSettings.industry.toUpperCase() : 'OTHER';
-    console.log(`Converting industry value from "${orgSettings.industry}" to "${industryValue}"`);
+    const industryValue = orgSettings && orgSettings.industry ? orgSettings.industry.toUpperCase() : 'OTHER';
+    console.log(`Using industry value: "${industryValue}"`);
+    
+    // Prepare update data with support for new fields
+    const orgUpdateData = {
+      industry: industryValue,
+      timezone: orgSettings.timezone || 'Australia/Canberra',
+      address: orgSettings.address || '',
+      phone: orgSettings.phone || ''
+    };
+    
+    // Add optional fields only if they exist
+    if (orgSettings.contactEmail !== undefined) orgUpdateData.contactEmail = orgSettings.contactEmail;
+    if (orgSettings.contactPhone !== undefined) orgUpdateData.contactPhone = orgSettings.contactPhone;
+    if (orgSettings.logoUrl !== undefined) orgUpdateData.logoUrl = orgSettings.logoUrl;
+    if (defaultCategories !== undefined) orgUpdateData.defaultCategories = defaultCategories;
     
     // Update organization settings
     const updatedOrg = await prisma.organization.update({
       where: { id: organizationId },
-      data: {
-        industry: industryValue,
-        timezone: orgSettings.timezone || 'Australia/Canberra',
-        address: orgSettings.address || '',
-        phone: orgSettings.phone || ''
-      }
-    });
-    console.log('Organization updated:', updatedOrg);
+      data: orgUpdateData
+    });    console.log('Organization updated:', updatedOrg);
     
-    // Create store
+    // Create store with proper null handling
     const newStore = await prisma.store.create({
       data: {
-        name: store.name || 'Main Store',
+        name: store && store.name ? store.name : 'Main Store',
+        address: store && store.address ? store.address : null,
         organizationId
       }
     });
     console.log('Store created:', newStore);
     
-    // Create items
+    // Create items with category support
     if (Array.isArray(items) && items.length > 0) {
       console.log(`Creating ${items.length} items for store ${newStore.id}`);
       
@@ -497,6 +505,7 @@ app.post('/api/organization/setup', authenticateToken, async (req, res) => {
         await prisma.item.create({
           data: {
             name: item.name,
+            category: item.category || 'Other',
             quantity: item.quantity || 0,
             mondayRequired: item.mondayRequired || 0,
             tuesdayRequired: item.tuesdayRequired || 0,
@@ -522,8 +531,11 @@ app.post('/api/organization/setup', authenticateToken, async (req, res) => {
     });
     console.log('User updated:', updatedUser);
     
+    // Send response in the format expected by frontend
     res.status(201).json({ 
       message: 'Organization setup completed successfully',
+      organization: updatedOrg,
+      stores: [newStore],
       organizationId,
       storeId: newStore.id
     });
@@ -556,11 +568,17 @@ app.get('/api/organizations', authenticateToken, async (req, res) => {
 
 // Create an inventory item
 app.post('/items', authenticateToken, filterByOrganization, async (req, res) => {
-  const { name, quantity, mondayRequired, tuesdayRequired, wednesdayRequired, thursdayRequired, fridayRequired, saturdayRequired, sundayRequired, storeId } = req.body;
+  const { name, category, quantity, mondayRequired, tuesdayRequired, wednesdayRequired, thursdayRequired, fridayRequired, saturdayRequired, sundayRequired, storeId } = req.body;
   try {
+    // Validate required fields
+    if (!name || !storeId) {
+      return res.status(400).json({ error: 'Name and storeId are required fields' });
+    }
+    
     const item = await prisma.item.create({
       data: { 
         name, 
+        category: category || 'Other', // Use the provided category or default to 'Other'
         quantity, 
         mondayRequired, 
         tuesdayRequired,
@@ -631,6 +649,8 @@ app.get('/items/store/:storeId', authenticateToken, filterByOrganization, async 
 app.put('/items/:id', authenticateToken, filterByOrganization, async (req, res) => {
   const { id } = req.params;
   const { 
+    name,
+    category,
     quantity, 
     mondayRequired, 
     tuesdayRequired, 
@@ -646,6 +666,8 @@ app.put('/items/:id', authenticateToken, filterByOrganization, async (req, res) 
     const updatedItem = await prisma.item.update({
       where: { id: Number(id) },
       data: { 
+        name,
+        category,
         quantity,
         mondayRequired,
         tuesdayRequired,
@@ -729,6 +751,117 @@ app.post('/stores', authenticateToken, filterByOrganization, async (req, res) =>
   } catch (error) {
     console.error('Error creating store:', error);
     res.status(500).json({ error: 'Failed to create store' });
+  }
+});
+
+// Category Management Endpoints
+// Get all categories for an organization
+app.get('/api/categories', authenticateToken, async (req, res) => {
+  try {
+    const { organizationId } = req.user;
+    
+    if (!organizationId) {
+      return res.status(400).json({ error: 'User is not associated with an organization' });
+    }
+    
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId }
+    });
+    
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+    
+    res.json({ categories: organization.defaultCategories || [] });
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// Add a new category
+app.post('/api/categories', authenticateToken, async (req, res) => {
+  try {
+    const { category } = req.body;
+    const { organizationId } = req.user;
+    
+    if (!category || typeof category !== 'string' || category.trim() === '') {
+      return res.status(400).json({ error: 'Valid category name is required' });
+    }
+    
+    if (!organizationId) {
+      return res.status(400).json({ error: 'User is not associated with an organization' });
+    }
+    
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId }
+    });
+    
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+    
+    // Check if category already exists
+    if (organization.defaultCategories && organization.defaultCategories.includes(category)) {
+      return res.status(400).json({ error: 'Category already exists' });
+    }
+    
+    // Add new category
+    const updatedCategories = [...(organization.defaultCategories || []), category];
+    
+    const updatedOrg = await prisma.organization.update({
+      where: { id: organizationId },
+      data: { defaultCategories: updatedCategories }
+    });
+    
+    res.status(201).json({
+      message: 'Category added successfully',
+      categories: updatedOrg.defaultCategories
+    });
+  } catch (error) {
+    console.error('Error adding category:', error);
+    res.status(500).json({ error: 'Failed to add category' });
+  }
+});
+
+// Delete a category
+app.delete('/api/categories/:categoryName', authenticateToken, async (req, res) => {
+  try {
+    const { categoryName } = req.params;
+    const { organizationId } = req.user;
+    
+    if (!organizationId) {
+      return res.status(400).json({ error: 'User is not associated with an organization' });
+    }
+    
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId }
+    });
+    
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+    
+    // Check if category exists
+    if (!organization.defaultCategories || !organization.defaultCategories.includes(categoryName)) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    
+    // Remove category
+    const updatedCategories = organization.defaultCategories.filter(cat => cat !== categoryName);
+    
+    const updatedOrg = await prisma.organization.update({
+      where: { id: organizationId },
+      data: { defaultCategories: updatedCategories }
+    });
+    
+    res.json({
+      message: 'Category deleted successfully',
+      categories: updatedOrg.defaultCategories
+    });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({ error: 'Failed to delete category' });
   }
 });
 
