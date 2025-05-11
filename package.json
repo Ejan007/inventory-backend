@@ -2,14 +2,20 @@
   "name": "stockit",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "scripts": {
+  "main": "index.js",  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx prisma generate && npx prisma migrate deploy && node index.js",
     "dev": "nodemon index.js",
-    "seed": "node seed.js",
+    "seed": "node scripts/seed.js",
     "db:init": "npx prisma migrate deploy",
-    "setup": "node migrateAndSeed.js"
+    "setup": "node scripts/migrateAndSeed.js",
+    "utils": "node utils.js",
+    "categories:test": "node scripts/testCategories.js",
+    "categories:seed": "node scripts/seedCategoryTestData.js",
+    "categories:migrate": "node scripts/migrateCategoriesData.js",
+    "clean:db": "node scripts/cleanDatabase.js",
+    "view:db": "node scripts/viewDatabase.js",
+    "db:studio": "npx prisma studio"
   },
   "keywords": [],
   "author": "",
