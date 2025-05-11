@@ -19,6 +19,7 @@ const storeRoutes = require('./routes/stores');
 const historyRoutes = require('./routes/history');
 const categoryRoutes = require('./routes/categories');
 const utilityRoutes = require('./routes/utility');
+const emailRoutes = require('./routes/email');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -42,6 +43,9 @@ app.use('/history', historyRoutes);
 // Category routes with multiple paths for compatibility
 app.use('/api/categories', categoryRoutes);
 app.use('/categories', categoryRoutes);
+
+// Email service routes
+app.use('/api/email', emailRoutes);
 
 // Utility routes
 app.use('/api', utilityRoutes);

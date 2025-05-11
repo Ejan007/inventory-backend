@@ -9,8 +9,9 @@ This document provides comprehensive documentation for the StockIT backend appli
 1. [API Documentation](#api-documentation)
 2. [Category Implementation](#category-implementation)
 3. [Organization Implementation](#organization-implementation)
-4. [Development Guide](#development-guide)
-5. [Deployment Guide](#deployment-guide)
+4. [Email Service](#email-service)
+5. [Development Guide](#development-guide)
+6. [Deployment Guide](#deployment-guide)
 
 ---
 
@@ -986,6 +987,265 @@ enum Industry {
 ```
 
 The default is "OTHER" if not specified.
+
+---
+
+# Email Service
+
+The StockIT backend includes an email service that enables sending various types of notifications and alerts to users about inventory status, password resets, welcome messages, and more.
+
+## Email Service Architecture
+
+The email service is implemented using [Nodemailer](https://nodemailer.com/) with [Handlebars](https://handlebarsjs.com/) templates. The service is organized as follows:
+
+- `/routes/email.js` - API endpoints for sending different types of emails
+- `/email-templates/` - HTML templates for each email type
+  - `low-stock-alert.html` - For inventory alerts
+  - `password-reset.html` - For password reset links
+  - `welcome.html` - For new user onboarding
+  - `inventory-report.html` - For inventory status reports
+
+## Supported Email Types
+
+### 1. Low Stock Alerts
+
+Notifies users when inventory items fall below required levels.
+
+**Endpoint:** `POST /api/email/low-stock-alert`
+
+**Request Body:**
+```json
+{
+  "recipient": ["email1@example.com", "email2@example.com"],
+  "storeName": "Main Store",
+  "items": [
+    {
+      "id": "123",
+      "name": "Product Name",
+      "quantity": 5,
+      "required": 10,
+      "shortage": 5
+    }
+  ],
+  "urgent": true
+}
+```
+
+### 2. Password Reset Emails
+
+Sends password reset links to users who have forgotten their passwords.
+
+**Endpoint:** `POST /api/email/password-reset`
+
+**Request Body:**
+```json
+{
+  "recipient": "user@example.com",
+  "resetToken": "jwt-token-for-reset",
+  "username": "Username"
+}
+```
+
+### 3. Welcome Emails
+
+Sends welcome messages to newly registered users.
+
+**Endpoint:** `POST /api/email/welcome`
+
+**Request Body:**
+```json
+{
+  "recipient": "newuser@example.com",
+  "name": "User Name",
+  "organizationName": "Organization Name"
+}
+```
+
+### 4. Inventory Reports
+
+Sends detailed inventory status reports.
+
+**Endpoint:** `POST /api/email/inventory-report`
+
+**Request Body:**
+```json
+{
+  "recipient": ["manager@example.com"],
+  "reportType": "Daily",
+  "storeName": "Main Store",
+  "categories": {
+    "Bakery": {
+      "name": "Bakery",
+      "items": [
+        {
+          "name": "Bread",
+          "quantity": 20,
+          "required": 25,
+          "isLow": true,
+          "status": "Low Stock"
+        }
+      ]
+    }
+  },
+  "recommendations": [
+    "Order 5 items that are currently below required levels",
+    "Regularly check the dashboard for real-time inventory updates"
+  ]
+}
+```
+
+### 5. Custom Emails
+
+Sends custom emails with user-defined content.
+
+**Endpoint:** `POST /api/email/custom`
+
+**Request Body:**
+```json
+{
+  "recipient": ["user@example.com"],
+  "subject": "Custom Subject",
+  "body": "<h2>HTML Email Content</h2><p>This is a custom message.</p>"
+}
+```
+
+## Configuration
+
+Email service configuration is stored in environment variables:
+
+```
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USER=user@example.com
+EMAIL_PASSWORD=secretpassword
+EMAIL_SECURE=false
+EMAIL_FROM=notifications@stockit.com
+FRONTEND_URL=https://stockit.app
+```
+
+## Template System
+
+Email templates are HTML files with Handlebars syntax for dynamic content insertion. Each template includes responsive design elements for proper display across devices and email clients.
+
+### Template Variables
+
+Each template accepts specific variables:
+
+- **Low Stock Alert**: `storeName`, `items` array, `urgent` flag
+- **Password Reset**: `username`, `resetUrl`
+- **Welcome Email**: `name`, `organizationName`
+- **Inventory Report**: `reportType`, `storeName`, `categories`, `recommendations`, `timestamp`
+
+## Testing Email Templates
+
+You can test email templates with sample data using the included test utility:
+
+```bash
+npm run email:test
+```
+
+This renders all templates with sample data and saves them to the `/email-test-output/` directory for review.
+
+## Security Considerations
+
+1. Email endpoints are protected with authentication middleware (except password reset)
+2. Rate limiting is implemented to prevent abuse (10 requests per 15 minutes per IP)
+3. HTML content in custom emails is sanitized to prevent XSS attacks
+4. Maximum of 20 recipients allowed per email to prevent abuse
+5. All email activity is logged for audit purposes
+
+## Email Service Logging
+
+The email service includes a built-in logging system that tracks all email activity:
+
+- Successful and failed email attempts
+- Email types and recipient counts
+- Error details for troubleshooting
+- Usage statistics by time period
+
+Logs are stored in the `/logs` directory:
+- `email-service.log` - All email activity
+- `email-service-error.log` - Failed email attempts only
+
+Logs are automatically rotated when they reach 5MB in size, with up to 5 rotated log files kept.
+
+### Email Stats API
+
+Administrators can access email service statistics via the Stats API endpoint:
+
+**Endpoint:** `GET /api/email/stats?period=day`
+
+**Query Parameters:**
+- `period` - Time period for stats (day, week, month)
+
+**Response:**
+```json
+{
+  "success": true,
+  "period": "day",
+  "stats": {
+    "total": 45,
+    "success": 42,
+    "failure": 3,
+    "byType": {
+      "low-stock-alert": {
+        "total": 15,
+        "success": 14,
+        "failure": 1
+      },
+      "welcome": {
+        "total": 10,
+        "success": 10,
+        "failure": 0
+      }
+    }
+  }
+}
+```
+
+## Automated Email Notifications
+
+The StockIT system includes automation for sending email notifications in response to inventory events:
+
+### Scheduled Inventory Checks
+
+A scheduled task can automatically check inventory levels and send email alerts:
+
+```bash
+# Run a manual inventory check
+npm run email:inventory-check
+
+# Set up a scheduled Windows task (runs daily at 8am)
+./Schedule-InventoryCheck.ps1 -Frequency Daily -Time "08:00"
+
+# Set up hourly inventory checks
+./Schedule-InventoryCheck.ps1 -Frequency Hourly
+```
+
+## Integration with Other Systems
+
+To integrate the email service with other parts of the application:
+
+```javascript
+// Import the email notifier utility
+const emailNotifier = require('../utils/emailNotifier');
+
+// Example: Send low stock alert
+await emailNotifier.sendLowStockAlert({
+  recipient: ['admin@example.com'],
+  storeName: 'Main Store',
+  items: itemsArray,
+  urgent: true
+});
+```
+2. Rate limiting is applied to prevent abuse
+3. Email validation is performed on recipient addresses
+4. Sensitive information is never included in email templates
+5. Password reset tokens have short expiration times
+
+## Frontend Integration
+
+The frontend email service should be implemented to call these API endpoints when alerts or notifications need to be sent. For example, the frontend might call the low-stock-alert endpoint when detecting items below their required levels during a stock check.
 
 ---
 
