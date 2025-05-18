@@ -101,21 +101,61 @@ const setupHandler = async (req, res) => {
     });
     console.log('Organization updated:', updatedOrg);
     
-    // Create store with proper null handling
-    const newStore = await prisma.store.create({
-      data: {
-        name: store && store.name ? store.name : 'Main Store',
-        address: store && store.address ? store.address : null,
-        organizationId
-      }
-    });
-    console.log('Store created:', newStore);
+    // Handle multiple stores or create default store
+    console.log('Processing stores data:', Array.isArray(req.body.stores) ? req.body.stores.length + ' stores' : 'Single store');
     
-    // Create items with category support
+    const storesData = Array.isArray(req.body.stores) && req.body.stores.length > 0 
+      ? req.body.stores 
+      : [{ name: store && store.name ? store.name : 'Main Store', address: store && store.address ? store.address : null }];
+    
+    // Create all stores
+    const storeIdMap = new Map(); // Map to track temp IDs to real store IDs
+    const createdStores = [];
+    
+    for (let i = 0; i < storesData.length; i++) {
+      const storeData = storesData[i];
+      // Create the store
+      const newStore = await prisma.store.create({
+        data: {
+          name: storeData.name || `Store ${i+1}`,
+          address: storeData.address || null,
+          organizationId
+        }
+      });
+      
+      console.log(`Store created: ${newStore.name} (ID: ${newStore.id})`);
+      createdStores.push(newStore);
+      
+      // Map various ID formats to the real database ID
+      if (storeData.tempId) storeIdMap.set(storeData.tempId, newStore.id);
+      if (storeData.id) storeIdMap.set(storeData.id, newStore.id);
+      storeIdMap.set(i, newStore.id); // Map by index
+    }
+    
+    console.log('Store ID mappings:', JSON.stringify(Array.from(storeIdMap.entries())));
+    
+    // Create items with correct store associations
     if (Array.isArray(items) && items.length > 0) {
-      console.log(`Creating ${items.length} items for store ${newStore.id}`);
+      console.log(`Creating ${items.length} items across ${createdStores.length} stores`);
       
       for (const item of items) {
+        // Determine which store this item belongs to
+        let targetStoreId;
+        
+        // Try to find the store by various ID formats
+        if (item.tempStoreId && storeIdMap.has(item.tempStoreId)) {
+          targetStoreId = storeIdMap.get(item.tempStoreId);
+        } else if (item.storeId && storeIdMap.has(item.storeId)) {
+          targetStoreId = storeIdMap.get(item.storeId);
+        } else if (typeof item.storeIndex === 'number' && storeIdMap.has(item.storeIndex)) {
+          targetStoreId = storeIdMap.get(item.storeIndex);
+        } else {
+          // Default to the first store if no match
+          targetStoreId = createdStores[0].id;
+        }
+        
+        console.log(`Creating item "${item.name}" for store ID: ${targetStoreId}`);
+        
         await prisma.item.create({
           data: {
             name: item.name,
@@ -128,11 +168,12 @@ const setupHandler = async (req, res) => {
             fridayRequired: item.fridayRequired || 0,
             saturdayRequired: item.saturdayRequired || 0,
             sundayRequired: item.sundayRequired || 0,
-            storeId: newStore.id,
+            storeId: targetStoreId,
             organizationId
           }
         });
       }
+      
       console.log('All items created successfully');
     } else {
       console.log('No items to create');
@@ -149,9 +190,9 @@ const setupHandler = async (req, res) => {
     res.status(201).json({ 
       message: 'Organization setup completed successfully',
       organization: updatedOrg,
-      stores: [newStore],
+      stores: createdStores,
       organizationId,
-      storeId: newStore.id
+      storeId: createdStores.length > 0 ? createdStores[0].id : null  // Default to first store's ID for backward compatibility
     });
   } catch (error) {
     console.error('Error completing organization setup:', error);
