@@ -9,7 +9,7 @@ const { authenticateToken, filterByOrganization } = require('../middleware');
 const prisma = new PrismaClient();
 
 /**
- * Get all stores
+ * Get all stores test
  */
 router.get('/', authenticateToken, filterByOrganization, async (req, res) => {
   try {
