@@ -1,0 +1,8 @@
+{"timestamp":"2025-05-11T10:37:11.299Z","type":"low-stock-alert","success":true,"recipientCount":1,"recipients":"swetagurung48@gmail.com","userId":"system"}
+{"timestamp":"2025-05-11T10:37:45.715Z","type":"low-stock-alert","success":true,"recipientCount":1,"recipients":"connect.ejan@gmail.com","userId":"system"}
+{"timestamp":"2025-05-11T10:58:27.331Z","type":"low-stock-alert","success":true,"recipientCount":1,"recipients":"connect.ejan@gmail.com","userId":"system"}
+{"timestamp":"2025-05-11T11:08:51.570Z","type":"inventory-report","success":true,"recipientCount":1,"recipients":"connect.ejan@gmail.com","userId":"system"}
+{"timestamp":"2025-05-11T11:38:36.829Z","type":"password-reset","success":true,"recipientCount":1,"recipients":"test@example.com","userId":"anonymous"}
+{"timestamp":"2025-05-11T11:38:40.285Z","type":"welcome","success":true,"recipientCount":1,"recipients":"newuser@example.com","userId":"system"}
+{"timestamp":"2025-05-11T11:41:26.473Z","type":"password-reset","success":true,"recipientCount":1,"recipients":"connect.ejan@gmail.com","userId":"anonymous"}
+{"timestamp":"2025-05-11T11:41:56.743Z","type":"welcome","success":true,"recipientCount":1,"recipients":"connect.ejan@gmail.com","userId":"system"}

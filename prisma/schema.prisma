@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int           @id @default(autoincrement())
+  email            String        @unique
+  password         String
+  role             Role
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  organizationId   Int?
+  organization     Organization? @relation(fields: [organizationId], references: [id])
+  isNewOrganization Boolean      @default(false)
+  storeAccesses    UserStoreAccess[]
+}
+
+model Organization {
+  id                Int      @id @default(autoincrement())
+  name              String
+  industry          Industry @default(OTHER)
+  timezone          String   @default("Australia/Canberra")
+  address           String?
+  phone             String?
+  isActive          Boolean  @default(true)
+  adminEmail        String
+  createdAt         DateTime @default(now())
+  users             User[]
+  stores            Store[]
+  items             Item[]
+  defaultCategories String[] @default(["Meat", "Vegetables", "Fruits", "Dairy", "Bakery", "Dry Goods", "Frozen", "Beverages", "Other"])
+  contactEmail      String?
+  contactPhone      String?
+  logoUrl           String?
+}
+
+model Store {
+  id             Int           @id @default(autoincrement())
+  name           String
+  address        String?       
+  items          Item[]
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  userAccesses   UserStoreAccess[]
+}
+
+model Item {
+  id                Int           @id @default(autoincrement())
+  name              String
+  quantity          Int
+  category          String        @default("Other")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  fridayRequired    Int
+  mondayRequired    Int
+  saturdayRequired  Int
+  sundayRequired    Int
+  thursdayRequired  Int
+  tuesdayRequired   Int
+  wednesdayRequired Int
+  storeId           Int           @default(1)
+  store             Store         @relation(fields: [storeId], references: [id])
+  history           ItemHistory[]
+  organizationId    Int?
+  organization      Organization? @relation(fields: [organizationId], references: [id])
+}
+
+model ItemHistory {
+  id        Int      @id @default(autoincrement())
+  itemId    Int
+  quantity  Int
+  updatedBy String
+  updatedAt DateTime @default(now())
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  dayBreakdown Json?
+}
+
+enum Role {
+  ADMIN
+  STORE
+  HEADOFFICE
+}
+
+// Store-scoped role for per-store access
+enum StoreRole {
+  STORE
+  MANAGER
+}
+
+// Per-user, per-store access assignments
+model UserStoreAccess {
+  id             Int        @id @default(autoincrement())
+  userId         Int
+  storeId        Int
+  organizationId Int?
+  storeRole      StoreRole  @default(STORE)
+  createdAt      DateTime   @default(now())
+
+  user  User @relation(fields: [userId], references: [id])
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@unique([userId, storeId])
+  @@index([storeId])
+}
+
+enum Industry {
+  BAKERY
+  RESTAURANT
+  CAFE
+  RETAIL
+  MANUFACTURING
+  OTHER
+}

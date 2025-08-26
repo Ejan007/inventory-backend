@@ -1,0 +1,11 @@
+{
+	"fullAccessStoreIds": [1, 2],
+	"fullAccessUsers": ["admin.brod@gmail.com"],
+	"notifyEmails": ["connect.ejan@gmail.com"],
+	"staff": {
+		"staff.brod@gmail.com": [],
+		"Ejancool12@gmail.com": [1]
+	},
+	"managers": {},
+	"staffAllUsers": []
+}
